@@ -41,7 +41,7 @@ const Chat = () => {
 
     try {
       // Send message to API
-      const response = await axios.post("http://localhost:5000/api/chat", {
+      const response = await axios.post("https://chat-bot-pq49.onrender.com/api/chat", {
         message: input,
       });
 

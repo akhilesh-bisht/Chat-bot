@@ -30,7 +30,7 @@ const FileUpload = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/files/upload",
+        "https://chat-bot-pq49.onrender.com/api/files/upload",
         formData,
         {
           headers: {
