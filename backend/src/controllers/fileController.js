@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import pdfParse from "pdf-parse";
 import csvParser from "csv-parser";
-
+import KnowledgeBase from "../models/knowledgeBase.js";
 // Upload and Process File
 export const uploadFile = async (req, res) => {
   try {
@@ -26,8 +26,15 @@ export const uploadFile = async (req, res) => {
     } else {
       return res.status(400).json({ error: "Unsupported file type" });
     }
+    // Save extracted text to MongoDB
+    const savedData = await KnowledgeBase.create({
+      fileName: req.file.originalname,
+      fileType: fileExt,
+      content: extractedText,
+    });
 
-    // Here, you can store `extractedText` in a database for chatbot responses
+    console.log("Saved in MongoDB:", savedData);
+
     console.log("Extracted Text:", extractedText);
 
     res.json({ message: "File processed successfully", extractedText });
