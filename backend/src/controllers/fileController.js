@@ -1,73 +1,53 @@
 import fs from "fs";
+import path from "path";
 import pdfParse from "pdf-parse";
 import csvParser from "csv-parser";
 
-// ✅ File Upload
-export const uploadFile = (req, res) => {
+// Upload and Process File
+export const uploadFile = async (req, res) => {
   try {
-    res.json({
-      message: "फ़ाइल सफलतापूर्वक अपलोड हो गई",
-      filename: req.file.filename,
-    });
-  } catch (error) {
-    console.error("File Upload Error:", error);
-    res.status(500).json({ error: "फ़ाइल अपलोड करने में त्रुटि हुई" });
-  }
-};
-
-// ✅ Process PDF File
-export const processPDF = async (req, res) => {
-  try {
-    const filePath = path.resolve(
-      "backend",
-      "test",
-      "data",
-      "05-versions-space.pdf"
-    );
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: "File not found" });
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
+    const filePath = req.file.path;
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
 
-    res.json({ text: data.text });
+    let extractedText = "";
+
+    if (fileExt === ".pdf") {
+      const dataBuffer = fs.readFileSync(filePath);
+      const pdfData = await pdfParse(dataBuffer);
+      extractedText = pdfData.text;
+    } else if (fileExt === ".csv") {
+      extractedText = await processCSV(filePath);
+    } else if (fileExt === ".txt") {
+      extractedText = fs.readFileSync(filePath, "utf-8");
+    } else {
+      return res.status(400).json({ error: "Unsupported file type" });
+    }
+
+    // Here, you can store `extractedText` in a database for chatbot responses
+    console.log("Extracted Text:", extractedText);
+
+    res.json({ message: "File processed successfully", extractedText });
+
+    // Cleanup: Remove the uploaded file after processing
+    fs.unlinkSync(filePath);
   } catch (error) {
-    console.error("PDF Processing Error:", error);
-    res.status(500).json({ error: "PDF प्रोसेस करने में त्रुटि हुई" });
+    console.error("File Processing Error:", error);
+    res.status(500).json({ error: "Error processing file" });
   }
 };
 
-// ✅ Process CSV File
-export const processCSV = (req, res) => {
-  try {
-    const filePath = `uploads/${req.body.filename}`;
+// Helper function to process CSV
+const processCSV = (filePath) => {
+  return new Promise((resolve, reject) => {
     const results = [];
-
     fs.createReadStream(filePath)
       .pipe(csvParser())
       .on("data", (data) => results.push(data))
-      .on("end", () => res.json({ data: results }))
-      .on("error", (error) => {
-        console.error("CSV Processing Error:", error);
-        res.status(500).json({ error: "CSV प्रोसेस करने में त्रुटि हुई" });
-      });
-  } catch (error) {
-    console.error("CSV Processing Error:", error);
-    res.status(500).json({ error: "CSV प्रोसेस करने में त्रुटि हुई" });
-  }
-};
-
-// ✅ Process Text File
-export const processText = (req, res) => {
-  try {
-    const filePath = `uploads/${req.body.filename}`;
-    const text = fs.readFileSync(filePath, "utf-8");
-
-    res.json({ text });
-  } catch (error) {
-    console.error("Text Processing Error:", error);
-    res.status(500).json({ error: "Text फ़ाइल प्रोसेस करने में त्रुटि हुई" });
-  }
+      .on("end", () => resolve(JSON.stringify(results, null, 2)))
+      .on("error", (err) => reject(err));
+  });
 };

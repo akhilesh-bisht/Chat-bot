@@ -1,18 +1,17 @@
 import express from "express";
-import {
-  uploadFile,
-  processPDF,
-  processCSV,
-  processText,
-} from "../controllers/fileController.js";
 import multer from "multer";
+import { uploadFile } from "../controllers/fileController.js";
 
 const router = express.Router();
-const upload = multer({ dest: "uploads/" });
 
+// Configure Multer for file storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+});
+const upload = multer({ storage });
+
+// Route to upload a file
 router.post("/upload", upload.single("file"), uploadFile);
-router.post("/process-pdf", processPDF);
-router.post("/process-csv", processCSV);
-router.post("/process-text", processText);
 
 export default router;
