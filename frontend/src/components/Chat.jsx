@@ -108,7 +108,7 @@ const Chat = () => {
         {isLoading && (
           <div className="flex justify-start">
             <div className="max-w-[80%] rounded-lg p-3 bg-gray-700 text-white flex items-center">
-              {/* <p className="mr-2">🔎 खोज रहा हूँ</p> */}
+              <p className="mr-2">🔎 खोज रहा हूँ</p>
               <div className="flex space-x-1">
                 <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
                 <div className="w-2 h-2 bg-white rounded-full animate-bounce delay-100"></div>
