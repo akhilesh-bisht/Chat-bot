@@ -19,7 +19,9 @@ const uploadDir = "uploads";
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
-
+app.get("/", (req, res) => {
+  res.send("server started");
+});
 // Use chatbot routes
 app.use("/api", chatbotRoutes);
 app.use("/api/files", fileRoutes);
