@@ -41,9 +41,12 @@ const Chat = () => {
 
     try {
       // Send message to API
-      const response = await axios.post("https://chat-bot-pq49.onrender.com/api/chat", {
-        message: input,
-      });
+      const response = await axios.post(
+        "https://chat-bot-pq49.onrender.com/api/chat",
+        {
+          message: input,
+        }
+      );
 
       // Add assistant response to chat
       setMessages((prev) => [
