@@ -1,63 +1,89 @@
+"use client";
+import { FaArrowLeft } from "react-icons/fa";
 import React, { useState } from "react";
-import axios from "axios";
+import { Loader2, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const FileUpload = () => {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      setError(null);
-      setMessage(null);
     }
+  };
+
+  const showToast = (title, description, variant = "success") => {
+    setToast({ title, description, variant });
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handleUpload = async () => {
     if (!file) {
-      setError("कृपया पहले एक फ़ाइल चुनें।");
+      showToast(
+        "कोई फ़ाइल नहीं चुनी गई",
+        "कृपया पहले एक फ़ाइल चुनें।",
+        "destructive"
+      );
       return;
     }
 
     setUploading(true);
-    setError(null);
-    setMessage(null);
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const response = await axios.post(
+      const response = await fetch(
         "https://chat-bot-pq49.onrender.com/api/files/upload",
-        formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          method: "POST",
+          body: formData,
         }
       );
 
-      setMessage("फ़ाइल सफलतापूर्वक अपलोड की गई!");
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      showToast("सफलता!", "फ़ाइल सफलतापूर्वक अपलोड की गई।");
       setFile(null);
     } catch (error) {
-      console.error("Error uploading file:", error);
-      setError("फ़ाइल अपलोड करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।");
+      console.error("Upload Error:", error);
+      showToast(
+        "अपलोड विफल",
+        "फ़ाइल अपलोड करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
+        "destructive"
+      );
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="p-4 border border-gray-700 rounded-lg bg-gray-900 text-white">
-      <h2 className="text-xl font-bold mb-4">ज्ञान आधार अपलोड</h2>
-      <p className="text-sm text-gray-400 mb-4">
-        अपने ज्ञान आधार में हिंदी सामग्री जोड़ने के लिए PDF, TXT, या CSV फ़ाइल
-        अपलोड करें।
+    <div className="space-y-4 p-4 bg-gray-900 text-white rounded-xl border border-gray-700">
+      <FaArrowLeft onClick={()=> navigate('/chat')}  className="cursor-pointer"/>
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded shadow-lg text-sm ${
+            toast.variant === "destructive"
+              ? "bg-red-600 text-white"
+              : "bg-green-600 text-white"
+          }`}
+        >
+          <strong>{toast.title}</strong>
+          <div>{toast.description}</div>
+        </div>
+      )}
+      <h2 className="text-xl font-bold">ज्ञान आधार अपलोड</h2>
+      <p className="text-sm text-gray-400">
+        अपने ज्ञान आधार में हिंदी सामग्री जोड़ने के लिए PDF, TXT, या CSV फ़ाइल अपलोड करें।
       </p>
 
-      <div className="border-2 border-dashed border-gray-600 p-6 rounded-lg mb-4 bg-gray-800">
+      <div className="border-dashed border-2 border-gray-600 p-6 flex flex-col items-center justify-center bg-gray-800 rounded-lg">
         <input
           type="file"
           id="file-upload"
@@ -69,20 +95,7 @@ const FileUpload = () => {
           htmlFor="file-upload"
           className="cursor-pointer flex flex-col items-center justify-center w-full h-full"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-10 w-10 text-gray-400 mb-2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
+          <Upload className="h-10 w-10 text-gray-400 mb-2" />
           <p className="text-sm text-gray-400 text-center">
             फ़ाइल चुनने के लिए क्लिक करें या यहां खींचें
           </p>
@@ -95,20 +108,19 @@ const FileUpload = () => {
       <button
         onClick={handleUpload}
         disabled={!file || uploading}
-        className="w-full bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50"
+        className={`w-full py-2 px-4 rounded bg-blue-600 text-white font-semibold flex items-center justify-center ${
+          (!file || uploading) && "opacity-50 cursor-not-allowed"
+        }`}
       >
-        {uploading ? "अपलोड हो रहा है..." : "फ़ाइल अपलोड करें"}
+        {uploading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            अपलोड हो रहा है...
+          </>
+        ) : (
+          "फ़ाइल अपलोड करें"
+        )}
       </button>
-
-      {message && (
-        <div className="mt-4 p-2 bg-green-700 text-white rounded-lg">
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-4 p-2 bg-red-700 text-white rounded-lg">{error}</div>
-      )}
     </div>
   );
 };

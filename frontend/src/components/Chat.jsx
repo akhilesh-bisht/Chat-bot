@@ -1,17 +1,16 @@
-import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
-
+import React, { useState, useEffect, useRef } from "react";
+import { FaArrowLeft } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 const Chat = () => {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState(() => {
-    // Load chat history from localStorage
-    const savedChats = localStorage.getItem("chatHistory");
-    return savedChats
-      ? JSON.parse(savedChats)
+    const saved = localStorage.getItem("chatHistory");
+    return saved
+      ? JSON.parse(saved)
       : [
           {
             role: "assistant",
-            content:
-              "नमस्ते! मैं आपकी हिंदी में मदद करने के लिए तैयार हूँ। कृपया अपना प्रश्न पूछें।",
+            content: "नमस्ते! मैं आपकी हिंदी में मदद के लिए तैयार हूँ। कृपया अपना प्रश्न पूछें।",
           },
         ];
   });
@@ -19,128 +18,122 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to bottom of messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
-
-  // Save messages to localStorage whenever it updates
   useEffect(() => {
     localStorage.setItem("chatHistory", JSON.stringify(messages));
   }, [messages]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Add user message to chat
     const userMessage = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
     try {
-      // Send message to API
-      const response = await axios.post(
-        "https://chat-bot-pq49.onrender.com/api/chat",
-        {
-          message: input,
-        }
-      );
+      const response = await fetch("https://chat-bot-pq49.onrender.com/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input }),
+      });
+      const data = await response.json();
 
-      // Add assistant response to chat
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response.data.reply },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("API error:", error);
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: "मुझे खेद है, एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
-        },
+        { role: "assistant", content: "माफ़ कीजिए, कोई त्रुटि हुई। कृपया फिर से प्रयास करें।" },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Clear chat history
   const clearChat = () => {
     localStorage.removeItem("chatHistory");
     setMessages([
       {
         role: "assistant",
-        content:
-          "नमस्ते! मैं आपकी हिंदी में मदद करने के लिए तैयार हूँ। कृपया अपना प्रश्न पूछें।",
+        content: "नमस्ते! मैं आपकी हिंदी में मदद के लिए तैयार हूँ। कृपया अपना प्रश्न पूछें।",
       },
     ]);
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 text-white">
-      <div className="flex justify-between items-center p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold">📜 चैट हिस्ट्री</h2>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b p-4 flex justify-between items-center">
+        <FaArrowLeft onClick={()=> navigate('/')}  className="cursor-pointer"/>
+        <h1 className="text-lg font-semibold">हिंदी चैटबॉट</h1>
         <button
           onClick={clearChat}
-          className="bg-red-600 px-3 py-1 rounded-lg text-white hover:bg-red-700 transition"
+          className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
         >
           साफ करें
         </button>
-      </div>
+      </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages */}
+      <main className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${
-              msg.role === "user" ? "justify-end" : "justify-start"
-            }`}
+            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg p-3 text-white ${
-                msg.role === "user" ? "bg-blue-600" : "bg-gray-700"
+              className={`max-w-[80%] rounded-lg px-4 py-2 text-sm ${
+                msg.role === "user" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"
               }`}
             >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
+              {msg.content}
             </div>
           </div>
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-lg p-3 bg-gray-700 text-white flex items-center">
-              <p className="mr-2">🔎 खोज रहा हूँ</p>
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-white rounded-full animate-bounce delay-100"></div>
-                <div className="w-2 h-2 bg-white rounded-full animate-bounce delay-200"></div>
-              </div>
+            <div className="bg-gray-200 px-4 py-2 rounded-lg text-sm text-gray-600 animate-pulse">
+              उत्तर तैयार कर रहा हूँ...
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
-      </div>
+      </main>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="अपना प्रश्न हिंदी में पूछें..."
-            className="flex-1 p-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            dir="auto"
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-          >
-            भेजें
-          </button>
-        </div>
+      {/* Input */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white border-t p-4 flex gap-2"
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="अपना प्रश्न हिंदी में पूछें..."
+          className="flex-1 p-2 border rounded focus:outline-none"
+          dir="auto"
+        />
+        {/* Upload button  */}
+        <button
+          type="button"
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          title="अपलोड करें"
+          onClick={() =>navigate('/upload')}
+        >
+          अपलोड करें
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading || !input.trim()}
+          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+        >
+          भेजें
+        </button>
       </form>
     </div>
   );
